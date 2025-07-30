@@ -89,8 +89,8 @@ RG5 3ND</textarea>
   <table>
     <thead>
       <tr>
-        <th>#</th><th>Date</th><th>Location</th><th>Hours</th>
-        <th>Airflows</th><th>Hours £</th><th>AF £</th><th>Total £</th><th>Action</th>
+        <th>#</th><th>Date</th><th>Location</th><th>No of Hours</th>
+        <th>No of Airflows</th><th>Hours £</th><th>AF £</th><th>Total £</th><th>Action</th>
       </tr>
     </thead>
     <tbody id="invoiceBody"></tbody>
@@ -569,11 +569,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
 <!-- Main logic -->
 <script>
-  $(function () {
-    // Initialize flatpickr on existing date-pickers
-    flatpickr('.date-picker', { dateFormat: 'd/m/Y' });
-
-    // Add or rebuild row
+  $(function() {
+    // 1) Define your helpers
+    // 1.1 Add or rebuild row
     function addRow(data = {}) {
       let idx = $('#invoiceBody tr').length + 1;
       let tr = $(`
@@ -601,8 +599,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       bindRowEvents(tr);
       calculatePayments();
     }
-
-    // Bind events to row inputs
+    // 1.2 Bind events to row inputs
     function bindRowEvents(tr) {
       tr.find('.hours-worked, .airflows-done').on('input', () => {
         calculatePayments();
@@ -623,42 +620,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         saveAllData();
       });
     }
-
-    // Rate description label
-    function updateRateDesc() {
-      let h = +$('#hourRate').val(), a = +$('#airflowPrice').val();
-      $('#rateDescription').text(`Rate of £${h.toFixed(2)} per hour, £${a.toFixed(2)} per airflow.`);
-    }
-
-    // Recalculate row payments and grand total
-    function calculatePayments() {
-      let grandTotal = 0, seq = 0;
-
-      $('#invoiceBody tr:visible').each(function () {
-        seq++;
-        $(this).find('td').eq(0).text(seq); // resequence
-
-        let r = $(this),
-            hrs = +r.find('.hours-worked').val(),
-            af = +r.find('.airflows-done').val(),
-            hr = +$('#hourRate').val(),
-            ap = +$('#airflowPrice').val(),
-            ph = hrs * hr,
-            pa = af * ap,
-            tot = ph + pa;
-
-        r.find('.hours-payment').text(ph.toFixed(2));
-        r.find('.airflows-payment').text(pa.toFixed(2));
-        r.find('.total-payment').text(tot.toFixed(2));
-
-        grandTotal += tot;
-      });
-
-      $('#grandTotal').text(grandTotal.toFixed(2));
-    }
-
-// Save rows to localStorage
-function saveAllData() {
+    // Save rows to localStorage
+    function saveAllData() {
   // 1. Save invoice rows
   const rows = $('#invoiceBody tr').map(function () {
     const $r = $(this);
@@ -696,30 +659,8 @@ function saveAllData() {
     localStorage.setItem('locationFilter', filter);
   }
 }
-    /*function saveData() {
-      let rows = $('#invoiceBody tr').map(function () {
-        let r = $(this);
-        return {
-          date: r.find('.date-picker').val(),
-          location: r.find('.location').val(),
-          hours: r.find('.hours-worked').val(),
-          airflows: r.find('.airflows-done').val()
-        };
-      }).get();
-
-      localStorage.setItem('invoiceData', JSON.stringify(rows));
-    }*/
-
-
-    // Load rows from localStorage
-    /* function loadData() {
-      let rows = JSON.parse(localStorage.getItem('invoiceData'));
-      $('#invoiceBody').empty();
-      if (Array.isArray(rows) && rows.length) {
-        rows.forEach(addRow);
-      }
-    } */
-function loadAllData() {
+    // Load rows from localStorage  
+    function loadAllData() {
   // 1. Load invoice rows (null-safe + error-guarded)
   const raw = localStorage.getItem('invoiceData') || '[]';
   let rows;
@@ -767,7 +708,37 @@ function loadAllData() {
   updateRateDesc();
   calculatePayments();
 }
+    /* your other functions: updateRateDesc, calculatePayments, downloadPDF, finalizeInvoice, etc. */
+    // Rate description label
+    function updateRateDesc() {
+      let h = +$('#hourRate').val(), a = +$('#airflowPrice').val();
+      $('#rateDescription').text(`Rate of £${h.toFixed(2)} per hour, £${a.toFixed(2)} per airflow.`);
+    }
+    // Recalculate row payments and grand total
+    function calculatePayments() {
+      let grandTotal = 0, seq = 0;
 
+      $('#invoiceBody tr:visible').each(function () {
+        seq++;
+        $(this).find('td').eq(0).text(seq); // resequence
+
+        let r = $(this),
+            hrs = +r.find('.hours-worked').val(),
+            af = +r.find('.airflows-done').val(),
+            hr = +$('#hourRate').val(),
+            ap = +$('#airflowPrice').val(),
+            ph = hrs * hr,
+            pa = af * ap,
+            tot = ph + pa;
+
+        r.find('.hours-payment').text(ph.toFixed(2));
+        r.find('.airflows-payment').text(pa.toFixed(2));
+        r.find('.total-payment').text(tot.toFixed(2));
+
+        grandTotal += tot;
+      });
+      $('#grandTotal').text(grandTotal.toFixed(2));
+    }
     //downlaod PDF
     function downloadPDF() {
   const { jsPDF } = window.jspdf;
@@ -867,10 +838,8 @@ function loadAllData() {
   // Save File
   const suffix = ($('#locationFilter').val() === 'all') ? '' : `_${$('#locationFilter').val()}`;
   doc.save(`invoice${suffix}_${$('#invoiceNumber').val() || 'x'}.pdf`);
-}  
- 
-   
-   // Finalize invoice by clearing all rows
+}
+    // Finalize invoice by clearing all rows
     function finalizeInvoice() {
       if (!confirm('Finalize invoice and clear all rows?')) return;
       $('#invoiceBody').empty();
@@ -878,7 +847,6 @@ function loadAllData() {
       saveAllData();
       calculatePayments();
     }
-
     // Filter rows by dropdown selection
     $('#locationFilter').change(function () {
       let filter = $(this).val()?.trim();
@@ -888,66 +856,24 @@ function loadAllData() {
       });
       calculatePayments();
     });
+    
+    // 2) Run on DOM ready
+    flatpickr('.date-picker', { dateFormat: 'd/m/Y' });
 
-    // Wire up controls
-    $('#addRowBtn').click(() => {
-      addRow();
-      //saveData();
-      saveAllData();
-    });
-
-    $('#hourRate, #airflowPrice').on('input', () => {
-  updateRateDesc();
-  calculatePayments();
-  //saveData();
-  saveAllData();
-  localStorage.setItem('hourRate', $('#hourRate').val());
-  localStorage.setItem('airflowPrice', $('#airflowPrice').val());
-});
-
-$(document).ready(function () {
-  // 1. Restore ALL persisted data exactly once on startup
-  loadAllData();
-
-  // 2. Wire up your buttons
-  $('#downloadBtn').click(downloadPDF);
-  $('#finalizeBtn').click(finalizeInvoice);
-
-  // 3. Restore & apply saved rates
-  const hourRate    = localStorage.getItem('hourRate');
-  const airflowPrice = localStorage.getItem('airflowPrice');
-  if (hourRate    !== null) $('#hourRate').val(hourRate);
-  if (airflowPrice !== null) $('#airflowPrice').val(airflowPrice);
-
-  // 4. Recalculate any derived UI elements
-  updateRateDesc();
-  calculatePayments();
-
-  // 5. (Later) set up your input listeners to save back to localStorage
-  //    for #invoiceNumber, #issueDate, #billedTo, #from, etc.
-});
-/*
-$(document).ready(function () {
-     // console.log("window.jspdf loaded:", window.jspdf);
-     loadAllData();
+    // wire up buttons
+    $('#addRowBtn').click(() => { addRow(); saveAllData(); });
     $('#downloadBtn').click(downloadPDF);
-     });
     $('#finalizeBtn').click(finalizeInvoice);
 
-    // Initial setup
-    //loadData();
+    // wire up your input listeners
+    ['#invoiceNumber','#issueDate','#billedTo','#from','#hourRate','#airflowPrice']
+      .forEach(sel => $(sel).on('input change', saveAllData));
+
+    // restore any saved rates, fields, rows
     loadAllData();
-    // Restore saved rates from localStorage
-const hourRate = localStorage.getItem('hourRate');
-const airflowPrice = localStorage.getItem('airflowPrice');
-
-if (hourRate !== null) $('#hourRate').val(hourRate);
-if (airflowPrice !== null) $('#airflowPrice').val(airflowPrice);
-
     updateRateDesc();
     calculatePayments();
-  }); */
-
+  });
 </script>
 
 </body>
